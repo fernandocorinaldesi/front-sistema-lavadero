@@ -18,6 +18,16 @@ export default new Router({
           component: () => import('@/views/Home'),
         },
         {
+          name: 'Ingresar orden',
+          path: '/ordenes/ingresar',
+          component: () => import('@/views/Orders'),
+        },
+        {
+          name: 'Ver ordenes',
+          path: '/ordenes/ver',
+          component: () => import('@/views/ShowOrders'),
+        },
+        {
           name: 'About',
           path: '/About',
           component: () => import('@/views/About'),

@@ -100,11 +100,11 @@ export default {
         subLinks: [
           {
             text: "Ingresar orden",
-            to: "/players",
+            to: "/ordenes/ingresar",
           },
           {
             text: "Ver ordenes",
-            to: "/players/import",
+            to: "/ordenes/ver",
           },
         ],
       },
