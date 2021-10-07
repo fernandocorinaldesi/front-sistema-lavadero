@@ -28,6 +28,11 @@ export default new Router({
           component: () => import('@/views/ShowOrders'),
         },
         {
+          name: 'Alta cliente',
+          path: '/clientes/alta',
+          component: () => import('@/views/AddClients'),
+        },
+        {
           name: 'About',
           path: '/About',
           component: () => import('@/views/About'),

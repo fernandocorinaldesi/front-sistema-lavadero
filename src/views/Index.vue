@@ -5,6 +5,8 @@
     <dashboard-core-drawer />
 
     <dashboard-core-view />
+
+    <dashboard-core-calendar/>
     
   </v-app>
 </template>
@@ -16,7 +18,7 @@
     components: {
       DashboardCoreAppBar: () => import('@/components/core/AppBar'),
       DashboardCoreDrawer: () => import('@/components/core/Drawer'),
-     // DashboardCoreSettings: () => import('./components/core/Settings'),
+      DashboardCoreCalendar: () => import('@/components/core/Calendar'),
       DashboardCoreView: () => import('@/components/core/View'),
     },
 
