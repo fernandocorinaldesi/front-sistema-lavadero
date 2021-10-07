@@ -1,61 +1,99 @@
 <template>
-  <v-container>
+  <v-container class="mb-5">
     <v-row class="text-center justify-center align-center mt-4 mb-5">
-      <v-col cols="6" class="elevation-2">
+      <v-col cols="8" class="elevation-2">
+        <h2 class="headline mb-3">Formulario de ingreso de orden de trabajo</h2>
         <v-form
           ref="form"
           v-model="valid"
           lazy-validation
           scrolleable
-          class="mb-5"
+          class="mb-6"
         >
-          <h2 class="headline mb-3">
-            Formulario de ingreso de orden de trabajo
-          </h2>
+          <h3 class="font-weight-light mb-5">Datos del cliente</h3>
           <v-row>
             <v-col cols="3" md="4">
-              <v-text-field
-                v-model="firstname"
-                :rules="nameRules"
-                :counter="10"
-                label="Nombre"
-                required
-              ></v-text-field>
+              <v-autocomplete
+                v-model="dniSeleccionado"
+                :items="clients"
+                :loading="isLoading"
+                :search-input.sync="search"
+                color="white"
+                hide-no-data
+                clearable
+                hide-selected
+                item-text="dni"
+                item-value="nombre"
+                label="Buscar Cliente"
+                placeholder="Ingresa el DNI"
+                prepend-icon="mdi-database-search"
+                return-object
+              >
+              </v-autocomplete>
             </v-col>
 
-            <v-col cols="3" md="4">
-              <v-text-field
-                v-model="lastname"
-                :rules="nameRules"
-                :counter="10"
-                label="Apellido"
-                required
-              ></v-text-field>
+            <v-col cols="8" md="4">
+              <v-expand-transition>
+                <v-list v-if="dniSeleccionado">
+                  <v-list-item v-for="(field, i) in fields" :key="i">
+                    <v-list-item-content>
+                      <v-list-item-title
+                        v-text="field.value"
+                      ></v-list-item-title>
+                      <v-list-item-subtitle
+                        v-text="field.key"
+                      ></v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-expand-transition>
             </v-col>
-
-            <v-col cols="3" md="4">
-              <v-text-field
-                v-model="email"
-                :rules="emailRules"
-                label="E-mail"
-                required
-              ></v-text-field>
-            </v-col>
+          </v-row>
+          <v-row class="justify-end">
+            <div class="mb-4 mr-">
+              <v-btn
+                :disabled="!dniSeleccionado"
+                class="mr-2"
+                color="danger"
+                @click="dniSeleccionado = null"
+              >
+                Descartar
+                <v-icon right> mdi-close-circle </v-icon>
+              </v-btn>
+              <v-btn
+                to="/clientes/alta"
+                :disabled="dniSeleccionado"
+                color="success"
+              >
+                Agregar
+                <v-icon right> mdi-account </v-icon>
+              </v-btn>
+            </div>
           </v-row>
 
           <v-divider class="mb-2" />
-          <h2 class="headline mb-3">Servicios a agregar</h2>
+          <h3 class="font-weight-light mb-5">Servicios a agregar</h3>
           <v-row>
-            <v-col cols="3" md="4">
+            <v-col cols="12" md="4">
               <v-select
                 v-model="select"
-                :items="items"
+                :items="serviciosdb"
                 item-text="nombre"
                 label="servicios"
                 return-object
               ></v-select>
             </v-col>
-            <v-col cols="3" md="4">
+            <v-col cols="12" md="4">
+              <v-slider
+                v-model="cantidad"
+                color="blue"
+                label="Cantidad"
+                min="1"
+                max="50"
+                thumb-label
+              ></v-slider>
+            </v-col>
+            <v-col cols="12" md="4">
               <v-btn color="success" class="mr-4" @click="addService">
                 Agregar
               </v-btn>
@@ -63,172 +101,333 @@
           </v-row>
 
           <v-divider class="mb-2" />
-          <h2 class="headline mb-5">Servicios agregados</h2>
+          <h3 class="font-weight-light mb-5">Servicios agregados</h3>
           <v-row class="text-center justify-center">
-            <!-- <v-list>
-              <v-list-item-group
-                v-model="model"
-                active-class="border"
-                color="indigo"
+            <div v-if="hayServicios">
+              <v-simple-table light class="elevation-2 mb-5">
+                <thead>
+                  <tr>
+                    <th class="text-left">Servicio</th>
+                    <th class="text-left">Precio</th>
+                    <th class="text-left">Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, i) in servicios" :key="i">
+                    <td>{{ item.nombre }}</td>
+                    <td>$ {{ item.precio }}</td>
+                    <td>{{ item.cantidad }}</td>
+                  </tr>
+                </tbody>
+
+                <div class="text-center">
+                  <v-dialog v-model="dialog" width="500">
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-btn
+                        color="primary"
+                        text
+                        v-bind="attrs"
+                        v-on="on"
+                        small
+                      >
+                        Agregar servicio personalizado
+                      </v-btn>
+                    </template>
+                    <v-card>
+                      <v-card-title class="text-h5 grey lighten-2">
+                        Agregar servicio personalizado
+                      </v-card-title>
+
+                      <v-card-text>
+                        <v-row>
+                          <v-col>
+                            <v-text-field
+                              v-model="personalizadoServicio"
+                              :rules="nameRules"
+                              :counter="10"
+                              label="Nombre del servicio"
+                              required
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="personalizadoPrecio"
+                              :min="0"
+                              prefix="$"
+                              type="number"
+                              label="Precio"
+                              required
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                      </v-card-text>
+
+                      <v-divider></v-divider>
+
+                      <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn color="primary" text @click="addCustomService">
+                          Agregar
+                        </v-btn>
+                        <v-btn color="danger" text @click="dialog = false">
+                          Cerrar
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-dialog>
+                </div>
+              </v-simple-table>
+            </div>
+          </v-row>
+
+          <v-row class="justify-end">
+            <v-col cols="3" md="4">
+              <h4 class="mt-5 ml-5 font-weight-medium">Precio total</h4>
+            </v-col>
+
+            <v-col cols="4" md="4">
+              <v-text-field
+                color="success"
+                prefix="$"
+                v-model="preciototal"
+                loading
+                disabled
+                >{{ preciototal }}</v-text-field
               >
-                <v-list-item v-for="(item, i) in servicios" :key="i">
-                  <v-list-item-content>
-                    <v-list-item-title
-                      style="white-space: normal"
-                      v-text="item.nombre"
-                    ></v-list-item-title>
-                    <v-list-item-title
-                      style="white-space: normal"
-                      v-text="item.precio"
-                    ></v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list> -->
-            <v-simple-table light class="elevation-2 mb-5">
-              <thead>
-                <tr>
-                  <th class="text-left">Servicio</th>
-                  <th class="text-left">Precio</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, i) in servicios" :key="i">
-                  <td>{{ item.nombre }}</td>
-                  <td>$ {{ item.precio }}</td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            </v-col>
           </v-row>
 
           <v-divider class="mb-2" />
+          <h3 class="font-weight-light mb-5">Forma de pago y entrega</h3>
+          <v-row>
+            <v-col cols="3" md="4">
+              <v-select
+                v-model="tipoPagoModel"
+                :items="pagos2"
+                label="Pago"
+              ></v-select>
+            </v-col>
 
-          <v-checkbox
-            v-model="checkbox"
-            :rules="[(v) => !!v || 'You must agree to continue!']"
-            label="Estas seguro de ingresar esta orden?"
-            required
-          ></v-checkbox>
-
+            <v-col cols="3" md="4">
+              <v-select
+                v-model="tipoEntregaModel"
+                :items="formaEntrega"
+                label="Entrega"
+              ></v-select>
+            </v-col>
+            <v-col cols="3" md="4">
+              <v-text-field
+                type="date"
+                v-model="fechaEntrega"
+                label="Fecha de entrega estimada"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="3" md="3">
+              <v-text-field
+                label="Monto"
+                color="primary"
+                prefix="$"
+                v-model="señaMonto"
+                :disabled="señaMontoField"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-divider class="mb-2" />
           <v-btn
             :disabled="!valid"
             color="success"
             class="mr-4"
             @click="validate"
           >
-            Validate
+            Ingresar
           </v-btn>
 
-          <v-btn color="error" class="mr-4" @click="reset"> Reset Form </v-btn>
+          <v-btn color="error" class="mr-4" @click="reset">Descartar</v-btn>
 
-          <v-btn color="warning" @click="resetValidation">
-            Reset Validation
-          </v-btn>
+          <!-- <v-btn color="warning" @click="resetValidation">
+            Borrar validaciones
+          </v-btn> -->
         </v-form>
+        <v-snackbar v-model="snackbar" top color="primary" :timeout="timeout">
+          La orden de trabajo se registro satisfactoriamente.
+        </v-snackbar>
       </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script>
-//import axios from "axios";
+import axios from "axios";
 
 export default {
   name: "RegisterOrder",
   data: () => ({
+    snackbar: false,
+    timeout: 4000,
+    clienteNoExiste: false,
+    fechaEntrega: null,
+    señaMonto: null,
     valid: true,
     name: "",
+    dialog: false,
     select: "",
+    preciototal: 0,
+    //## busqueda ##//
+    clientes: [],
+    descriptionLimit: 60,
+    isLoading: false,
+    dniSeleccionado: null,
+    personalizadoPrecio: null,
+    personalizadoServicio: null,
+    tipoPagoModel: null,
+    tipoEntregaModel: null,
+    search: null,
+     //##//
+    //##reglas de validacion//
     nameRules: [
-      (v) => !!v || "Name is required",
-      (v) => (v && v.length <= 10) || "Name must be less than 10 characters",
+      (v) => !!v || "Este campo es requerido",
+      (v) => (v && v.length <= 30) || "Debe tener menos de 30 caracteres",
     ],
     email: "",
     emailRules: [
-      (v) => !!v || "E-mail is required",
-      (v) => /.+@.+\..+/.test(v) || "E-mail must be valid",
+      (v) => !!v || "El E-mail es requerido",
+      (v) => /.+@.+\..+/.test(v) || "El E-mail debe ser válido",
     ],
-    items: [
-      {
-        nombre: "valet completo",
-        precio: 10,
-      },
-      {
-        nombre: "valet sólo lavado",
-        precio: 15,
-      },
-      {
-        nombre: "valet sólo secado",
-        precio: 17,
-      },
-      {
-        nombre: "valet completo",
-        precio: 11,
-      },
-      {
-        nombre: "planchado camisa",
-        precio: 50,
-      },
-      {
-        nombre: "planchado sábana",
-        precio: 30,
-      },
-      {
-        nombre: "planchado remera",
-        precio: 22,
-      },
-      {
-        nombre: "planchado pantalón",
-        precio: 21,
-      },
-      {
-        nombre: "planchado pantalón pinzado",
-        precio: 70,
-      },
-      {
-        nombre: "planchado chomba",
-        precio: 16,
-      },
-      {
-        nombre: "planchado mantel",
-        precio: 19,
-      },
-      {
-        nombre: "planchado cortina",
-        precio: 14,
-      },
-      {
-        nombre: "tintorería saco",
-        precio: 17,
-      },
-    ],
-    checkbox: false,
+     //##//
+    pagos: [{ nombre: "Total" }, { nombre: "Seña" }, { nombre: "En entrega" }],
+    pagos2: ["Total", "Seña", "En entrega"],
+    formaEntrega: ["Retira del local", "Entrega a domicilio"],
+    hayServicios: false,
+    cantidad: 0,
     servicios: [],
+    checkbox: false,
+    serviciosdb: [],
   }),
+  mounted() {
+    this.getServices();
+  },
   methods: {
     validate() {
-      this.$refs.form.validate();
+      //this.$refs.form.validate();
+      this.postOrder();
+      this.snackbar = true;
+      this.reset()
+    },
+    getServices() {
+      fetch("http://localhost:3001/servicios")
+        .then((res) => res.json())
+        .then((res) => {
+          const { elementos } = res;
+          this.serviciosdb = elementos;
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    async postOrder() {
+      try {
+        let post = {
+          clienteDni: this.dniSeleccionado,
+          servicios: this.servicios,
+          precio: this.preciototal,
+          senaMonto: this.señaMonto,
+          fecha_entrega: this.fechaEntrega,
+          tipo_pago: this.tipoPagoModel,
+          estado: "pendiente",
+          forma_entrega: this.tipoEntregaModel,
+        };
+
+        await axios.post("http://localhost:3001/orden", post);
+      } catch (error) {
+        console.log(error);
+      }
     },
     addService() {
       //this.$refs.form.validate();
+      this.select = {
+        id:this.select.id,
+        nombre: this.select.nombre,
+        precio: this.select.precio,
+        cantidad: this.cantidad,
+      };
       this.servicios.push(this.select);
+      this.preciototal += this.select.precio * this.cantidad;
       this.select = "";
+      this.cantidad = null;
+      this.hayServicios = true;
+    },
+    addCustomService() {
+      let custom = {
+        nombre: this.personalizadoServicio,
+        precio: this.personalizadoPrecio,
+        cantidad: 1,
+      };
+      this.servicios.push(custom);
+      this.preciototal += custom.precio * custom.cantidad;
+      this.personalizadoServicio = null;
+      this.personalizadoPrecio = null;
     },
     reset() {
       this.$refs.form.reset();
       this.servicios = [];
+      this.hayServicios = false;
     },
     resetValidation() {
       this.$refs.form.resetValidation();
     },
+  },
+  computed: {
+    señaMontoField() {
+      if (this.tipoPagoModel !== "Seña") {
+        return true;
+      } else {
+        return false;
+      }
+    },
+    fields() {
+      if (!this.dniSeleccionado) return [];
+      return Object.keys(this.dniSeleccionado).map((key) => {
+        return {
+          key,
+          value: this.dniSeleccionado[key] || "n/a",
+        };
+      });
+    },
+    clients() {
+      return this.clientes.map((e) => {
+        return {
+          nombre: e.nombre + " " + e.apellido,
+          direccion: e.direccion,
+          dni: e.dni,
+          email: e.email,
+          telefono: e.telefono,
+        };
+      });
+    },
+  },
+  watch: {
+    search() {
+      // Items have already been loaded
 
-    /*fetchData() {
-      try {
-        resultado = await axios.get("http://localhost:3001/orden");
-        this.data = resultado.elementos;
-      } catch (error) {}
-      
-    },*/
+      if (this.clients.length > 0) return;
+      // Items have already been requested
+
+      if (this.isLoading) return;
+      this.isLoading = true;
+
+      // Lazily load input items
+      fetch("http://localhost:3001/clientes")
+        .then((res) => res.json())
+        .then((res) => {
+          const { total, elementos } = res;
+          this.count = total;
+          this.clientes = elementos;
+        })
+        .catch((err) => {
+          console.log(err);
+        })
+        .finally(() => (this.isLoading = false));
+    },
   },
 };
 </script>
