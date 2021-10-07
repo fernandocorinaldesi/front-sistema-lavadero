@@ -1,112 +1,59 @@
 <template>
-  <v-data-table
-    :headers="headers"
-    :items="desserts"
-    :items-per-page="5"
-    class="elevation-1"
-  ></v-data-table>
+  <v-simple-table fixed-header height="300px">
+    <template v-slot:default>
+      <thead>
+        <tr>
+          <th class="text-left">Numero de orden</th>
+          <th class="text-left">Nombre y apellido del cliente</th>
+          <th class="text-left">DNI del cliente</th>
+          <th class="text-left">Forma de entrega</th>
+          <th class="text-left">Fecha de entrega</th>
+          <th class="text-left">Precio</th>
+          <th class="text-left">Monto a cobrar</th>
+          <th class="text-left">Estado</th>
+          <th class="text-left">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in ordenes" :key="item.id">
+          <td>{{ item.orden_id }}</td>
+          <td>{{ item.cliente_nombre }} {{item.cliente_apellido}}</td>
+          <td>{{ item.cliente_dni }}</td> 
+          <td>{{ item.tipo_entrega }}</td> 
+          <td>{{ item.fecha_entrega }}</td>  
+          <td>{{ item.precio }}</td>  
+          <td>{{ item.monto }}</td> 
+          <td>{{ item.estado }}</td>  
+          <td>En construcción</td>  
+        </tr>
+      </tbody>
+    </template>
+  </v-simple-table>
 </template>
 
 <script>
   export default {
     data () {
       return {
-        headers: [
-          {
-            text: 'Dessert (100g serving)',
-            align: 'start',
-            sortable: false,
-            value: 'name',
-          },
-          { text: 'Calories', value: 'calories' },
-          { text: 'Fat (g)', value: 'fat' },
-          { text: 'Carbs (g)', value: 'carbs' },
-          { text: 'Protein (g)', value: 'protein' },
-          { text: 'Iron (%)', value: 'iron' },
-        ],
-        desserts: [
-          {
-            name: 'Frozen Yogurt',
-            calories: 159,
-            fat: 6.0,
-            carbs: 24,
-            protein: 4.0,
-            iron: '1%',
-          },
-          {
-            name: 'Ice cream sandwich',
-            calories: 237,
-            fat: 9.0,
-            carbs: 37,
-            protein: 4.3,
-            iron: '1%',
-          },
-          {
-            name: 'Eclair',
-            calories: 262,
-            fat: 16.0,
-            carbs: 23,
-            protein: 6.0,
-            iron: '7%',
-          },
-          {
-            name: 'Cupcake',
-            calories: 305,
-            fat: 3.7,
-            carbs: 67,
-            protein: 4.3,
-            iron: '8%',
-          },
-          {
-            name: 'Gingerbread',
-            calories: 356,
-            fat: 16.0,
-            carbs: 49,
-            protein: 3.9,
-            iron: '16%',
-          },
-          {
-            name: 'Jelly bean',
-            calories: 375,
-            fat: 0.0,
-            carbs: 94,
-            protein: 0.0,
-            iron: '0%',
-          },
-          {
-            name: 'Lollipop',
-            calories: 392,
-            fat: 0.2,
-            carbs: 98,
-            protein: 0,
-            iron: '2%',
-          },
-          {
-            name: 'Honeycomb',
-            calories: 408,
-            fat: 3.2,
-            carbs: 87,
-            protein: 6.5,
-            iron: '45%',
-          },
-          {
-            name: 'Donut',
-            calories: 452,
-            fat: 25.0,
-            carbs: 51,
-            protein: 4.9,
-            iron: '22%',
-          },
-          {
-            name: 'KitKat',
-            calories: 518,
-            fat: 26.0,
-            carbs: 65,
-            protein: 7,
-            iron: '6%',
-          },
-        ],
+        ordenes: [],
       }
     },
+    mounted(){
+      this.getOrden()
+    },
+    methods: {
+    getOrden() {
+      fetch("http://localhost:3001/orden")
+        .then((res) => res.json())
+        .then((res) => {
+          const { elementos } = res;
+          console.log(res)
+          this.ordenes = elementos;
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+     },
+  },
   }
 </script>
