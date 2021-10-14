@@ -1,7 +1,7 @@
 <template>
   <v-container class="mb-5">
     <v-row class="text-center justify-center align-center mt-4 mb-5">
-      <v-col cols="8" class="elevation-2">
+      <v-col cols="10" class="elevation-2">
         <h2 class="headline mb-3">Formulario de ingreso de orden de trabajo</h2>
         <v-form
           ref="form"
@@ -10,14 +10,16 @@
           scrolleable
           class="mb-6"
         >
+          <v-divider class="mb-2" />
           <h3 class="font-weight-light mb-5">Datos del cliente</h3>
           <v-row>
-            <v-col cols="3" md="4">
+            <v-col cols="4">
               <v-autocomplete
                 v-model="dniSeleccionado"
                 :items="clients"
                 :loading="isLoading"
                 :search-input.sync="search"
+                :rules="clienteRules"
                 color="white"
                 hide-no-data
                 clearable
@@ -28,13 +30,26 @@
                 placeholder="Ingresa el DNI"
                 prepend-icon="mdi-database-search"
                 return-object
+                required
               >
               </v-autocomplete>
             </v-col>
 
-            <v-col cols="8" md="4">
+            <v-col cols="12" v-if="dniSeleccionado">
               <v-expand-transition>
-                <v-list v-if="dniSeleccionado">
+                <v-row>
+                  <div v-for="(field, i) in fields" :key="i">
+                    <v-col cols="12">
+                      <v-text-field
+                        :label="field.key"
+                        filled
+                        disabled
+                        :value="field.value"
+                      ></v-text-field>
+                    </v-col>
+                  </div>
+                </v-row>
+                <!-- <v-list two-line v-if="dniSeleccionado">
                   <v-list-item v-for="(field, i) in fields" :key="i">
                     <v-list-item-content>
                       <v-list-item-title
@@ -45,7 +60,7 @@
                       ></v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
-                </v-list>
+                </v-list> -->
               </v-expand-transition>
             </v-col>
           </v-row>
@@ -84,14 +99,14 @@
               ></v-select>
             </v-col>
             <v-col cols="12" md="4">
-              <v-slider
+              <v-text-field
                 v-model="cantidad"
-                color="blue"
+                :rules="cantidadRules"
+                type="number"
                 label="Cantidad"
                 min="1"
-                max="50"
-                thumb-label
-              ></v-slider>
+                required
+              ></v-text-field>
             </v-col>
             <v-col cols="12" md="4">
               <v-btn color="success" class="mr-4" @click="addService">
@@ -143,14 +158,14 @@
                           <v-col>
                             <v-text-field
                               v-model="personalizadoServicio"
-                              :rules="nameRules"
+                              :rules="genericRules"
                               :counter="10"
                               label="Nombre del servicio"
                               required
                             ></v-text-field>
                             <v-text-field
                               v-model="personalizadoPrecio"
-                              :min="0"
+                              :min="1"
                               prefix="$"
                               type="number"
                               label="Precio"
@@ -202,7 +217,9 @@
               <v-select
                 v-model="tipoPagoModel"
                 :items="pagos2"
+                :rules="genericRules"
                 label="Pago"
+                required
               ></v-select>
             </v-col>
 
@@ -210,14 +227,18 @@
               <v-select
                 v-model="tipoEntregaModel"
                 :items="formaEntrega"
+                :rules="genericRules"
                 label="Entrega"
+                required
               ></v-select>
             </v-col>
             <v-col cols="3" md="4">
               <v-text-field
                 type="date"
+                :rules="genericRules"
                 v-model="fechaEntrega"
                 label="Fecha de entrega estimada"
+                required
               ></v-text-field>
             </v-col>
           </v-row>
@@ -265,7 +286,7 @@ export default {
     snackbar: false,
     timeout: 4000,
     clienteNoExiste: false,
-    fechaEntrega: null,
+    fechaEntrega:  new Date().toISOString().slice(0,10) ,
     señaMonto: null,
     valid: true,
     name: "",
@@ -282,23 +303,32 @@ export default {
     tipoPagoModel: null,
     tipoEntregaModel: null,
     search: null,
-     //##//
+    //##//
     //##reglas de validacion//
-    nameRules: [
+    clienteRules: [
       (v) => !!v || "Este campo es requerido",
-      (v) => (v && v.length <= 30) || "Debe tener menos de 30 caracteres",
+     ],
+    genericRules: [
+      (v) => !!v || "Este campo es requerido",
+      
+    ],
+    cantidadRules: [
+      (v) => v > 0 || "El minimo es 1",
     ],
     email: "",
     emailRules: [
       (v) => !!v || "El E-mail es requerido",
       (v) => /.+@.+\..+/.test(v) || "El E-mail debe ser válido",
     ],
-     //##//
+     
+    
+    //##//
+    
     pagos: [{ nombre: "Total" }, { nombre: "Seña" }, { nombre: "En entrega" }],
     pagos2: ["Total", "Seña", "En entrega"],
     formaEntrega: ["Retira del local", "Entrega a domicilio"],
     hayServicios: false,
-    cantidad: 0,
+    cantidad: 1,
     servicios: [],
     checkbox: false,
     serviciosdb: [],
@@ -308,10 +338,16 @@ export default {
   },
   methods: {
     validate() {
-      //this.$refs.form.validate();
+      this.$refs.form.validate();
+      if(this.dniSeleccionado===null){
+        this.valid = false
+      }
+      alert(this.valid)
+      if(this.valid){
       this.postOrder();
       this.snackbar = true;
-      this.reset()
+      this.reset();
+      }
     },
     getServices() {
       fetch("http://localhost:3001/servicios")
@@ -343,9 +379,9 @@ export default {
       }
     },
     addService() {
-      //this.$refs.form.validate();
+      this.$refs.form.validate();
       this.select = {
-        id:this.select.id,
+        id: this.select.id,
         nombre: this.select.nombre,
         precio: this.select.precio,
         cantidad: this.cantidad,
@@ -353,7 +389,7 @@ export default {
       this.servicios.push(this.select);
       this.preciototal += this.select.precio * this.cantidad;
       this.select = "";
-      this.cantidad = null;
+      this.cantidad = 1;
       this.hayServicios = true;
     },
     addCustomService() {
