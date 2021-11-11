@@ -76,7 +76,7 @@
                 <v-icon right> mdi-close-circle </v-icon>
               </v-btn>
               <v-btn
-                to="/clientes/alta"
+                to="/clientes/ver"
                 :disabled="dniSeleccionado"
                 color="success"
               >
@@ -95,6 +95,7 @@
                 :items="serviciosdb"
                 item-text="nombre"
                 label="servicios"
+                item-value="nombre"
                 return-object
               ></v-select>
             </v-col>
@@ -136,7 +137,7 @@
                 </tbody>
 
                 <div class="text-center">
-                  <v-dialog v-model="dialog" width="500">
+                  <v-dialog v-model="dialogPersonalizado" width="500">
                     <template v-slot:activator="{ on, attrs }">
                       <v-btn
                         color="primary"
@@ -182,7 +183,11 @@
                         <v-btn color="primary" text @click="addCustomService">
                           Agregar
                         </v-btn>
-                        <v-btn color="danger" text @click="dialog = false">
+                        <v-btn
+                          color="danger"
+                          text
+                          @click="dialogPersonalizado = false"
+                        >
                           Cerrar
                         </v-btn>
                       </v-card-actions>
@@ -252,6 +257,15 @@
                 :disabled="señaMontoField"
               ></v-text-field>
             </v-col>
+   <!--          <v-col cols="3" md="3">
+              <v-text-field
+                label="Precio delivery"
+                color="primary"
+                prefix="$"
+                v-model="precioDelivery"
+                :disabled="deliveryField"
+              ></v-text-field>
+            </v-col> -->
           </v-row>
           <v-divider class="mb-2" />
           <v-btn
@@ -272,6 +286,9 @@
         <v-snackbar v-model="snackbar" top color="primary" :timeout="timeout">
           La orden de trabajo se registro satisfactoriamente.
         </v-snackbar>
+         <v-snackbar v-model="snackbarServiciosVacio" top color="error" :timeout="timeout">
+          La lista de servicios no puede estar vacía.
+        </v-snackbar>
       </v-col>
     </v-row>
   </v-container>
@@ -283,15 +300,18 @@ import axios from "axios";
 export default {
   name: "RegisterOrder",
   data: () => ({
+    dialogPersonalizado: false,
     snackbar: false,
+    snackbarServiciosVacio : false,
     timeout: 4000,
     clienteNoExiste: false,
-    fechaEntrega:  new Date().toISOString().slice(0,10) ,
+    fechaEntrega: new Date().toISOString().slice(0, 10),
+    precioDelivery: 0,
     señaMonto: null,
     valid: true,
     name: "",
     dialog: false,
-    select: "",
+    select: null,
     preciototal: 0,
     //## busqueda ##//
     clientes: [],
@@ -305,25 +325,17 @@ export default {
     search: null,
     //##//
     //##reglas de validacion//
-    clienteRules: [
-      (v) => !!v || "Este campo es requerido",
-     ],
-    genericRules: [
-      (v) => !!v || "Este campo es requerido",
-      
-    ],
-    cantidadRules: [
-      (v) => v > 0 || "El minimo es 1",
-    ],
+    clienteRules: [(v) => !!v || "Este campo es requerido"],
+    genericRules: [(v) => !!v || "Este campo es requerido"],
+    cantidadRules: [(v) => v > 0 || "El minimo es 1"],
     email: "",
     emailRules: [
       (v) => !!v || "El E-mail es requerido",
       (v) => /.+@.+\..+/.test(v) || "El E-mail debe ser válido",
     ],
-     
-    
+
     //##//
-    
+
     pagos: [{ nombre: "Total" }, { nombre: "Seña" }, { nombre: "En entrega" }],
     pagos2: ["Total", "Seña", "En entrega"],
     formaEntrega: ["Retira del local", "Entrega a domicilio"],
@@ -339,14 +351,17 @@ export default {
   methods: {
     validate() {
       this.$refs.form.validate();
-      if(this.dniSeleccionado===null){
-        this.valid = false
+      if (this.dniSeleccionado === null) {
+        this.valid = false;
       }
-      alert(this.valid)
-      if(this.valid){
-      this.postOrder();
-      this.snackbar = true;
-      this.reset();
+      if (this.valid) {
+        if(this.servicios.length>0){
+        this.postOrder();
+        this.snackbar = true;
+        this.reset();
+        }else{
+          this.snackbarServiciosVacio = true;
+        }
       }
     },
     getServices() {
@@ -355,6 +370,7 @@ export default {
         .then((res) => {
           const { elementos } = res;
           this.serviciosdb = elementos;
+          this.select = this.serviciosdb[0]
         })
         .catch((err) => {
           console.log(err);
@@ -365,7 +381,7 @@ export default {
         let post = {
           clienteDni: this.dniSeleccionado,
           servicios: this.servicios,
-          precio: this.preciototal,
+          precio: this.preciototal + parseInt(this.precioDelivery),
           senaMonto: this.señaMonto,
           fecha_entrega: this.fechaEntrega,
           tipo_pago: this.tipoPagoModel,
@@ -377,9 +393,10 @@ export default {
       } catch (error) {
         console.log(error);
       }
+      this.$root.$emit('myEvent');
     },
     addService() {
-      this.$refs.form.validate();
+      // this.$refs.form.validate();
       this.select = {
         id: this.select.id,
         nombre: this.select.nombre,
@@ -387,10 +404,14 @@ export default {
         cantidad: this.cantidad,
       };
       this.servicios.push(this.select);
+
       this.preciototal += this.select.precio * this.cantidad;
-      this.select = "";
       this.cantidad = 1;
       this.hayServicios = true;
+      if(this.select.nombre === "Delivery"){
+        this.formaEntrega = "Entrega a domicilio";
+        this.tipoEntregaModel = "Entrega a domicilio";
+      }
     },
     addCustomService() {
       let custom = {
@@ -402,11 +423,14 @@ export default {
       this.preciototal += custom.precio * custom.cantidad;
       this.personalizadoServicio = null;
       this.personalizadoPrecio = null;
+      this.dialogPersonalizado = false;
     },
     reset() {
       this.$refs.form.reset();
       this.servicios = [];
       this.hayServicios = false;
+      this.precioDelivery = 0;
+      this.señaMonto = null;
     },
     resetValidation() {
       this.$refs.form.resetValidation();
@@ -414,11 +438,11 @@ export default {
   },
   computed: {
     señaMontoField() {
-      if (this.tipoPagoModel !== "Seña") {
-        return true;
-      } else {
-        return false;
-      }
+      return this.tipoPagoModel !== "Seña"
+
+    },
+    deliveryField() {
+      return this.tipoEntregaModel !== "Entrega a domicilio" 
     },
     fields() {
       if (!this.dniSeleccionado) return [];
@@ -433,10 +457,12 @@ export default {
       return this.clientes.map((e) => {
         return {
           nombre: e.nombre + " " + e.apellido,
-          direccion: e.direccion,
           dni: e.dni,
           email: e.email,
           telefono: e.telefono,
+          direccion: e.direccion,
+          localidad: e.localidad,
+          privincia: e.provincia
         };
       });
     },
