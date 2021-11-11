@@ -33,6 +33,31 @@ export default new Router({
           component: () => import('@/views/AddClients'),
         },
         {
+          name: 'Ver clientes',
+          path: '/clientes/ver',
+          component: () => import('@/views/ShowClients'),
+        },
+        {
+          name: 'Ver servicios',
+          path: '/servicios/ver',
+          component: () => import('@/views/ShowServices'),
+        },
+        {
+          name: 'Ver insumos',
+          path: '/insumos/ver',
+          component: () => import('@/views/ShowProductos'),
+        },
+        {
+          name: 'Ver stocks',
+          path: '/stocks/ver',
+          component: () => import('@/views/ShowStocks'),
+        },
+        {
+          name: 'Ver contabilidad',
+          path: '/contabilidad/ver',
+          component: () => import('@/views/ShowContables'),
+        },
+        {
           name: 'About',
           path: '/About',
           component: () => import('@/views/About'),
