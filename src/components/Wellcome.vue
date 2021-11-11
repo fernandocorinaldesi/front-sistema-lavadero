@@ -35,11 +35,27 @@
       </v-col>
 
       <v-col class="mb-5" cols="12">
-        <h2 class="headline font-weight-bold mb-3">Consultas</h2>
+        <h2 class="headline font-weight-bold mb-3">Servicios</h2>
 
         <v-row justify="center">
           <a
-            v-for="(link, i) in consultas"
+            v-for="(link, i) in servicios"
+            :key="i"
+            :href="link.href"
+            class="subheading mx-3"
+            target="_blank"
+          >
+            {{ link.text }}
+          </a>
+        </v-row>
+      </v-col>
+
+        <v-col class="mb-5" cols="12">
+        <h2 class="headline font-weight-bold mb-3">Clientes</h2>
+
+        <v-row justify="center">
+          <a
+            v-for="(link, i) in clientes"
             :key="i"
             :href="link.href"
             class="subheading mx-3"
@@ -67,6 +83,8 @@
         </v-row>
       </v-col>
     </v-row>
+    
+    
   </v-container>
 </template>
 
@@ -78,45 +96,31 @@ export default {
     ordeneTrabajo: [
       {
         text: "Ingresar",
-        href: "https://github.com/vuetifyjs/vuetify-loader",
+        href: "/ordenes/ingresar",
       },
       {
         text: "Ver ordenes",
-        href: "https://github.com/vuetifyjs/vuetify",
-      },
-      {
-        text: "opcion 3",
-        href: "https://github.com/vuetifyjs/awesome-vuetify",
+        href: "/ordenes/ver",
       },
     ],
-    consultas: [
+    servicios: [
       {
-        text: "Consultar",
-        href: "https://vuetifyjs.com",
-      },
-      {
-        text: "opcion 2",
-        href: "https://community.vuetifyjs.com",
-      },
-      {
-        text: "opcion 3",
-        href: "https://madewithvuejs.com/vuetify",
+        text: "Ver servicios",
+        href: "/servicios/ver",
       },
     ],
+     clientes: [
+      {
+        text: "Ver clientes",
+        href: "/clientes/ver",
+      },
+     ],
     contabilidad: [
       {
         text: "Ingresar al modulo contable",
         href: "https://vuetifyjs.com/components/api-explorer",
       },
-      {
-        text: "opcion 2",
-        href: "https://vuetifyjs.com/getting-started/pre-made-layouts",
-      },
-      {
-        text: "opcion 3",
-        href: "https://vuetifyjs.com/getting-started/frequently-asked-questions",
-      },
-    ],
+     ],
   }),
 };
 </script>
