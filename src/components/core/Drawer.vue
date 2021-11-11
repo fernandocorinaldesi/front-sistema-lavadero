@@ -6,7 +6,7 @@
     :expand-on-hover="expandOnHover"
     :right="$vuetify.rtl"
     :src="barImage"
-    mobile-break-point="960"
+    mobile-breakpoint="960"
     app
     width="260"
     v-bind="$attrs"
@@ -35,7 +35,6 @@
         <v-list-item
           v-if="!link.subLinks"
           :to="link.to"
-          :active-class="color"
           avatar
           class="v-list-item"
         >
@@ -109,10 +108,61 @@ export default {
         ],
       },
       {
+        icon: "mdi-account",
+        text: "Clientes",
+        subLinks: [
+          {
+            text: "Ver clientes",
+            to: "/clientes/ver",
+          },
+        ],
+      },
+           {
+        icon: "mdi-cog-outline",
+        text: "Servicios",
+        subLinks: [
+          {
+            text: "Ver servicios",
+            to: "/servicios/ver",
+          },
+        ],
+      },
+      {
+        icon: "mdi-tools",
+        text: "Insumos",
+        subLinks: [
+          {
+            text: "Ver insumos",
+            to: "/insumos/ver",
+          },
+        ],
+      },
+       {
+        icon: "mdi-feature-search",
+        text: "Stocks",
+        subLinks: [
+          {
+            text: "Ver stocks",
+            to: "/stocks/ver",
+          },
+        ],
+      },
+         {
+        icon: "mdi-cash-multiple",
+        text: "Contabilidad",
+        subLinks: [
+          {
+            text: "Ver contabilidad",
+            to: "/contabilidad/ver",
+          },
+        ],
+      },
+      
+      /* {
         to: "/consultas",
         icon: "mdi-magnify",
         text: "Consultas",
-      },
+      }, */
     ],
   }),
 
@@ -141,7 +191,7 @@ export default {
       return {
         ...item,
         children: item.children ? item.children.map(this.mapItem) : undefined,
-        title: "PUTAMADRE",
+        title: "",
       };
     },
   },
