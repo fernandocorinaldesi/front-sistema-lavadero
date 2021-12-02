@@ -58,6 +58,11 @@ export default new Router({
           component: () => import('@/views/ShowContables'),
         },
         {
+          name: 'Seguridad',
+          path: '/seguridad',
+          component: () => import('@/views/ShowSecuritys'),
+        },
+        {
           name: 'About',
           path: '/About',
           component: () => import('@/views/About'),

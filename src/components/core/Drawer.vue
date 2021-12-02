@@ -157,6 +157,11 @@ export default {
           },
         ],
       },
+      {
+        to: "/seguridad",
+        icon: "mdi-security",
+        text: "Seguridad",
+      },
       
       /* {
         to: "/consultas",
