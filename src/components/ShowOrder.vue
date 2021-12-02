@@ -3,12 +3,10 @@
     <v-data-table
       :headers="headers"
       :items="filteredItems"
-      sort-by="id"
       :page.sync="page"
-      :items-per-page="itemsPerPage"
-      hide-default-footer
       class="elevation-1"
-      @page-count="pageCount = $event"
+      :items-per-page="5"
+      :footer-props="{ itemsPerPageText: 'Items por pagina' }"
     >
       <template template v-slot:[`item.acciones`]="{ item }">
         <div v-if="item.estado === 'pendiente'">
@@ -37,6 +35,11 @@
         </div>
         <div v-if="item.estado === 'entregada'">
           <v-icon color="success">mdi-check-circle-outline</v-icon>
+        </div>
+        <div v-if="item.estado === 'en camino'">
+          <v-btn color="primary" x-small @click="entregarOrden(item.id)"
+              >Entregar</v-btn
+            >
         </div>
       </template>
       <template template v-slot:[`item.operaciones`]="{ item }">
@@ -79,7 +82,9 @@
                 @click="cancelarEnvio(item.id)"
                 >Cancelar delivery</v-btn
               >
+
             </div>
+            
             <div v-if="item.estado === 'entregada'">
               <v-btn color="success" x-small
                 >Imprimir recibo <v-icon x-small>mdi-printer</v-icon></v-btn
@@ -105,12 +110,6 @@
                     ></v-text-field>
                   </v-col>
                   <v-col cols="3" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.descripcion"
-                      label="Ubicación"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="3" sm="6" md="4">
                     <v-select
                       v-model="editedItem.tipo_entrega"
                       label="Forma de entrega"
@@ -130,7 +129,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="busquedaFechaModal" max-width="550px">
+        <v-dialog v-model="busquedaFechaModal" max-width="600px">
           <v-card>
             <v-card-title>
               <span class="text-h5">Seleccionar rango de fechas</span>
@@ -151,6 +150,46 @@
                       type="date"
                       label="Hasta"
                     ></v-text-field>
+                  </v-col>
+                </v-row>
+                <span class="text-h6">Busqueda rápida</span>
+                <v-row>
+                  <v-col cols="3">
+                    <v-btn
+                      outlined
+                      small
+                      color="blue darken-1"
+                      text
+                      @click="hoy()"
+                    >
+                      Hoy
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="3">
+                    <v-btn
+                      outlined
+                      color="blue darken-1"
+                      text
+                      small
+                      @click="ultimaSemana()"
+                    >
+                      Ultima semana
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="3">
+                    <v-btn
+                      outlined
+                      color="blue darken-1"
+                      text
+                      small
+                      @click="ultimoMes()"
+                    >
+                      Ultimo mes
+                    </v-btn>
                   </v-col>
                 </v-row>
               </v-container>
@@ -189,38 +228,58 @@
           </v-card>
         </v-dialog>
         <v-dialog v-model="dialogDescripcion" max-width="500px">
-          <v-card>
-            <v-card-title class="text-h5"
-              >Ingresar lugar de almacenado</v-card-title
-            >
-            <v-card-text>
-              <v-row>
-                <v-col>
-                  <v-textarea
-                    v-model="descripcion"
-                    label="Descripcion"
-                    required
-                  ></v-textarea>
-                </v-col>
-              </v-row>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                color="blue darken-1"
-                text
-                @click="dialogDescripcion = false"
-                >Cancelar</v-btn
+          <v-form
+            ref="formDescripcion"
+            v-model="formDescripcion"
+            lazy-validation
+            scrolleable
+            class="mb-6"
+          >
+            <v-card>
+              <v-card-title class="text-h5"
+                >Ingresar lugar de almacenado</v-card-title
               >
-              <v-btn
-                color="blue darken-1"
-                text
-                @click="ingresarDescripcionItemConfirm"
-                >Aceptar</v-btn
-              >
-              <v-spacer></v-spacer>
-            </v-card-actions>
-          </v-card>
+              <v-card-text>
+                <v-row>
+                  <v-col>
+                    <v-select
+                      v-model="letra"
+                      :items="letras"
+                      label="Letra"
+                      :rules="genericRules"
+                      required
+                    ></v-select>
+                  </v-col>
+                  <v-col>
+                    <v-select
+                      v-model="numero"
+                      :items="numeros"
+                      label="Numero"
+                      :rules="genericRules"
+                      required
+                    ></v-select>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                  color="blue darken-1"
+                  text
+                  @click="dialogDescripcionClose()"
+                  >Cancelar</v-btn
+                >
+                <v-btn
+                  color="blue darken-1"
+                  text
+                  :disabled="!formDescripcion"
+                  @click="ingresarDescripcionItemConfirm"
+                  >Aceptar</v-btn
+                >
+                <v-spacer></v-spacer>
+              </v-card-actions>
+            </v-card>
+          </v-form>
         </v-dialog>
         <v-dialog v-model="DialogdetalleOrden" max-width="500px">
           <v-card>
@@ -245,7 +304,7 @@
                     <tr v-for="item in detallesOrden" :key="item.id">
                       <td>{{ item.nombre }}</td>
                       <td>{{ item.cantidad }}</td>
-                      <td>{{ item.precio }}</td>
+                      <td>$ {{ item.precio }}</td>
                       <td>{{ item.tipo }}</td>
                     </tr>
                   </tbody>
@@ -389,17 +448,6 @@
       <v-pagination v-model="page" :length="pageCount"></v-pagination>
       <v-row>
         <v-col cols="2" sm="2" md="2">
-          <v-text-field
-            :value="itemsPerPage"
-            label="Items por pagina"
-            type="number"
-            min="1"
-            max="10"
-            class="ml-5"
-            @input="itemsPerPage = parseInt($event, 10)"
-          ></v-text-field>
-        </v-col>
-        <v-col cols="2" sm="2" md="2">
           <v-btn
             color="primary"
             class="ml-2 mt-3"
@@ -416,34 +464,33 @@
       <v-card>
         <v-card-title class="text-h6">Imprimir delivery</v-card-title>
         <v-card-text>
-          <div id="print">
-            <v-data-table
-              :headers="deliveryHeader"
-              :items="filteredItemsDelivery"
-              :items-per-page="5"
-              class="elevation-1"
-              :footer-props="{ itemsPerPageText: 'Items por pagina' }"
-            >
-              <template v-slot:top>
-                <v-row justify="center">
-                  <v-col cols="5">
-                    <v-text-field
-                      v-model="desde"
-                      type="date"
-                      label="Desde"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="5">
-                    <v-text-field
-                      v-model="hasta"
-                      type="date"
-                      label="Hasta"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-              </template>
-            </v-data-table>
-          </div>
+          <v-data-table
+            id="print"
+            :headers="deliveryHeader"
+            :items="filteredItemsDelivery"
+            :items-per-page="5"
+            class="elevation-1"
+            :footer-props="{ itemsPerPageText: 'Items por pagina' }"
+          >
+            <template v-slot:top>
+              <v-row justify="center">
+                <v-col cols="5">
+                  <v-text-field
+                    v-model="desde"
+                    type="date"
+                    label="Desde"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="5">
+                  <v-text-field
+                    v-model="hasta"
+                    type="date"
+                    label="Hasta"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </template>
+          </v-data-table>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -464,6 +511,7 @@ import axios from "axios";
 export default {
   data: () => ({
     busquedaFechaModal: false,
+    formDescripcion: false,
     deliveryDialog: false,
     dniBusqueda: null,
     idBusqueda: null,
@@ -473,6 +521,37 @@ export default {
     fechaBusquedaDesde: null,
     fechaBusquedaHasta: null,
     formaEntrega: ["Entrega a domicilio", "Retira del local"],
+    numeros: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+    numero: null,
+    letra: null,
+    letras: [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z",
+    ],
     page: 1,
     pageCount: 0,
     estados: [
@@ -519,16 +598,23 @@ export default {
       fecha_entrega: "",
       tipo_entrega: "",
     },
+    genericRules: [(v) => !!v || "Este campo es requerido"],
+    hoyBusqueda: null,
     desde: new Date().toISOString().slice(0, 10),
     hasta: new Date().toISOString().slice(0, 10),
     delivery: [],
+    lastWeek: null,
+    firstWeek: null,
+    firstDay: null,
+    hoyMes: null,
   }),
   computed: {
     formTitle() {
       return this.editedIndex === -1 ? "Nueva orden" : "Editar orden";
     },
+
     filteredItemsDelivery() {
-      let fechaDesde = this.ordenes.filter((i) => {
+      let fechaDesde = this.delivery.filter((i) => {
         let busquedaDesde;
         if (this.desde !== null) {
           busquedaDesde = this.desde.split("-");
@@ -558,8 +644,7 @@ export default {
 
       return fechaHasta.filter((e) => {
         return (
-          e.estado !== "entregada" &&
-          e.estado !== "en camino" &&
+          e.estado === "en camino"  &&
           e.tipo_entrega === "Entrega a domicilio"
         );
       });
@@ -583,6 +668,7 @@ export default {
             new Date(busquedaDesde[0], busquedaDesde[1] - 1, busquedaDesde[2])
         );
       });
+
       let fechaHasta = fechaDesde.filter((i) => {
         let busquedaHasta;
         if (this.fechaBusquedaHasta !== null) {
@@ -601,7 +687,67 @@ export default {
         return !this.estadoBusqueda || i.estado === this.estadoBusqueda;
       });
 
-      return estado.filter((i) => {
+      let firstWeek = estado.filter((i) => {
+        let busquedaHasta;
+        if (this.firstWeek !== null) {
+          busquedaHasta = this.firstWeek.split("-");
+        }
+        const entrega = i.fecha_entrega.split("-");
+
+        return (
+          !this.firstWeek ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) >=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      let lastWeek = firstWeek.filter((i) => {
+        let busquedaHasta;
+        if (this.lastWeek !== null) {
+          busquedaHasta = this.lastWeek.split("-");
+        }
+        const entrega = i.fecha_entrega.split("-");
+
+        return (
+          !this.lastWeek ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) <=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      let hoy = lastWeek.filter((i) => {
+        return !this.hoyBusqueda || i.fecha_entrega === this.hoyBusqueda;
+      });
+
+      let mes = hoy.filter((i) => {
+        let busquedaDesde;
+        if (this.firstDay !== null) {
+          busquedaDesde = this.firstDay.split("-");
+        }
+
+        const entrega = i.fecha_entrega.split("-");
+        return (
+          !this.firstDay ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) >=
+            new Date(busquedaDesde[0], busquedaDesde[1] - 1, busquedaDesde[2])
+        );
+      });
+
+      let hoymes = mes.filter((i) => {
+        let busquedaHasta;
+        if (this.hoyMes !== null) {
+          busquedaHasta = this.hoyMes.split("-");
+        }
+        const entrega = i.fecha_entrega.split("-");
+
+        return (
+          !this.hoyMes ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) <=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      return hoymes.filter((i) => {
         return !this.dniBusqueda || i.dni === this.dniBusqueda;
       });
     },
@@ -638,6 +784,32 @@ export default {
     this.initialize();
   },
   methods: {
+    hoy() {
+      this.busquedaFechaModal = false;
+      this.hoyBusqueda = new Date().toISOString().slice(0, 10);
+      this.filteredItems();
+    },
+    ultimaSemana() {
+      this.busquedaFechaModal = false;
+      let today = new Date();
+      let firstDayWeek = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - 7
+      );
+      this.firstWeek = firstDayWeek.toISOString().slice(0, 10);
+      this.lastWeek = today.toISOString().slice(0, 10);
+      alert(this.lastWeek);
+      this.filteredItems();
+    },
+    ultimoMes() {
+      this.busquedaFechaModal = false;
+      var date = new Date();
+      let day = new Date(date.getFullYear(), date.getMonth(), 1);
+      this.firstDay = day.toISOString().slice(0, 10);
+      this.hoyMes = new Date().toISOString().slice(0, 10);
+      this.filteredItems();
+    },
     print() {
       // Pass the element id here
       // Get HTML to print from element
@@ -674,15 +846,7 @@ export default {
       WinPrint.close();
     },
     openDelivery() {
-      this.delivery = this.ordenes.filter((e) => {
-        return (
-          e.fecha_entrega >= this.desde &&
-          e.fecha_entrega <= this.hasta &&
-          e.estado !== "entregada" &&
-          e.tipo_entrega === "Entrega a domicilio"
-        );
-      });
-
+   
       this.deliveryDialog = true;
     },
     actualizar() {
@@ -705,6 +869,11 @@ export default {
       this.idBusqueda = null;
       this.estadoBusqueda = null;
       this.fechaBusqueda = null;
+      this.hoyBusqueda = null;
+      this.firstWeek = null;
+      this.lastWeek = null;
+      this.firstDay = null;
+      this.hoyMes = null;
       (this.fechaBusquedaDesde = null),
         (this.fechaBusquedaHasta = null),
         this.getOrden();
@@ -795,13 +964,21 @@ export default {
       this.closeDelete();
     },
     ingresarDescripcionItemConfirm() {
-      const orden = { estado: "para entregar", descripcion: this.descripcion };
-      this.updateOrden(this.descripcionId, orden);
-      this.dialogDescripcionClose();
+      this.formDescripcion = this.$refs.formDescripcion.validate();
+      if (this.formDescripcion) {
+        const orden = {
+          estado: "para entregar",
+          descripcion: this.letra + this.numero,
+        };
+        this.updateOrden(this.descripcionId, orden);
+        this.dialogDescripcionClose();
+      }
     },
     dialogDescripcionClose() {
       this.dialogDescripcion = false;
-      this.descripcion = "";
+      this.$refs.formDescripcion.reset();
+      this.$refs.formDescripcion.resetValidation();
+      this.descripcion = null;
     },
     close() {
       this.dialog = false;
@@ -844,7 +1021,6 @@ export default {
       this.initialize();
     },
     async deleteOrden(orden) {
-      alert(orden.id);
       try {
         await axios.delete("http://localhost:3001/orden/" + orden.id);
       } catch (error) {
