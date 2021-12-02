@@ -213,8 +213,8 @@
                       </v-col>
                       <v-col cols="12" sm="6" md="4">
                         <v-text-field
-                          v-model="stockSelect.marca"
-                          label="Proveedor"
+                          v-model="stockSelect.producto_marca"
+                          label="Marca"
                           disabled
                         ></v-text-field>
                       </v-col>
@@ -536,6 +536,7 @@ export default {
         nombre: this.insumoSelect.nombre,
         precio: this.insumoPrecio,
         cantidad: this.insumoCantidad,
+        marca: this.insumoSelect.marca,
         proveedor: this.insumoSelect.proveedor,
       };
       this.compras.push(insumoCompra);
