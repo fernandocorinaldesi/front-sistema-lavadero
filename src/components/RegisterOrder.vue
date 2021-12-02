@@ -88,34 +88,46 @@
 
           <v-divider class="mb-2" />
           <h3 class="font-weight-light mb-5">Servicios a agregar</h3>
-          <v-row>
-            <v-col cols="12" md="4">
-              <v-select
-                v-model="select"
-                :items="serviciosdb"
-                item-text="nombre"
-                label="servicios"
-                item-value="nombre"
-                return-object
-              ></v-select>
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="cantidad"
-                :rules="cantidadRules"
-                type="number"
-                label="Cantidad"
-                min="1"
-                required
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-btn color="success" class="mr-4" @click="addService">
-                Agregar
-              </v-btn>
-            </v-col>
-          </v-row>
-
+          <v-form
+            ref="formAgregar"
+            v-model="agregarService"
+            lazy-validation
+            scrolleable
+            class="mb-6"
+          >
+            <v-row>
+              <v-col cols="12" md="4">
+                <v-select
+                  v-model="select"
+                  :items="serviciosdb"
+                  item-text="nombre"
+                  label="servicios"
+                  item-value="nombre"
+                  return-object
+                ></v-select>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="cantidad"
+                  :rules="cantidadRules"
+                  type="number"
+                  label="Cantidad"
+                  min="1"
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-btn
+                  color="success"
+                  :disabled="!agregarService"
+                  class="mr-4"
+                  @click="addService"
+                >
+                  Agregar
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-form>
           <v-divider class="mb-2" />
           <h3 class="font-weight-light mb-5">Servicios agregados</h3>
           <v-row class="text-center justify-center">
@@ -257,7 +269,7 @@
                 :disabled="señaMontoField"
               ></v-text-field>
             </v-col>
-   <!--          <v-col cols="3" md="3">
+            <!--          <v-col cols="3" md="3">
               <v-text-field
                 label="Precio delivery"
                 color="primary"
@@ -286,7 +298,12 @@
         <v-snackbar v-model="snackbar" top color="primary" :timeout="timeout">
           La orden de trabajo se registro satisfactoriamente.
         </v-snackbar>
-         <v-snackbar v-model="snackbarServiciosVacio" top color="error" :timeout="timeout">
+        <v-snackbar
+          v-model="snackbarServiciosVacio"
+          top
+          color="error"
+          :timeout="timeout"
+        >
           La lista de servicios no puede estar vacía.
         </v-snackbar>
       </v-col>
@@ -300,9 +317,10 @@ import axios from "axios";
 export default {
   name: "RegisterOrder",
   data: () => ({
+    agregarService: false,
     dialogPersonalizado: false,
     snackbar: false,
-    snackbarServiciosVacio : false,
+    snackbarServiciosVacio: false,
     timeout: 4000,
     clienteNoExiste: false,
     fechaEntrega: new Date().toISOString().slice(0, 10),
@@ -323,6 +341,7 @@ export default {
     tipoPagoModel: null,
     tipoEntregaModel: null,
     search: null,
+    delivery: false,
     //##//
     //##reglas de validacion//
     clienteRules: [(v) => !!v || "Este campo es requerido"],
@@ -340,7 +359,7 @@ export default {
     pagos2: ["Total", "Seña", "En entrega"],
     formaEntrega: ["Retira del local", "Entrega a domicilio"],
     hayServicios: false,
-    cantidad: 1,
+    cantidad: 0,
     servicios: [],
     checkbox: false,
     serviciosdb: [],
@@ -355,11 +374,11 @@ export default {
         this.valid = false;
       }
       if (this.valid) {
-        if(this.servicios.length>0){
-        this.postOrder();
-        this.snackbar = true;
-        this.reset();
-        }else{
+        if (this.servicios.length > 0) {
+          this.postOrder();
+          this.snackbar = true;
+          this.reset();
+        } else {
           this.snackbarServiciosVacio = true;
         }
       }
@@ -370,7 +389,7 @@ export default {
         .then((res) => {
           const { elementos } = res;
           this.serviciosdb = elementos;
-          this.select = this.serviciosdb[0]
+          this.select = this.serviciosdb[0];
         })
         .catch((err) => {
           console.log(err);
@@ -393,24 +412,35 @@ export default {
       } catch (error) {
         console.log(error);
       }
-      this.$root.$emit('myEvent');
+      this.$root.$emit("myEvent");
     },
     addService() {
       // this.$refs.form.validate();
-      this.select = {
-        id: this.select.id,
-        nombre: this.select.nombre,
-        precio: this.select.precio,
-        cantidad: this.cantidad,
-      };
-      this.servicios.push(this.select);
+      this.agregarService = this.$refs.formAgregar.validate();
+      if (this.agregarService) {
+        this.select = {
+          id: this.select.id,
+          nombre: this.select.nombre,
+          precio: this.select.precio,
+          cantidad: this.cantidad,
+        };
+        this.servicios.push(this.select);
 
-      this.preciototal += this.select.precio * this.cantidad;
-      this.cantidad = 1;
-      this.hayServicios = true;
-      if(this.select.nombre === "Delivery"){
-        this.formaEntrega = "Entrega a domicilio";
-        this.tipoEntregaModel = "Entrega a domicilio";
+        this.preciototal += this.select.precio * this.cantidad;
+        this.cantidad = 1;
+        this.hayServicios = true;
+        if (this.select.nombre === "Delivery" && this.delivery === false) {
+          this.delivery = true;
+          this.formaEntrega = "Entrega a domicilio";
+          this.tipoEntregaModel = "Entrega a domicilio";
+          this.serviciosdb = this.serviciosdb.filter(function (el) {
+            return el.nombre != "Delivery";
+          });
+        }
+        else{ 
+          this.formaEntrega = "Retira del local";
+          this.tipoEntregaModel = "Retira del local";
+        }
       }
     },
     addCustomService() {
@@ -427,10 +457,19 @@ export default {
     },
     reset() {
       this.$refs.form.reset();
+      this.$refs.form.resetValidation();
+      this.$refs.formAgregar.reset();
+      this.$refs.formAgregar.resetValidation();
+      this.cantidad = 0;
+      this.serviciosdb = [];
       this.servicios = [];
+      this.delivery = false;
       this.hayServicios = false;
       this.precioDelivery = 0;
       this.señaMonto = null;
+      this.formaEntrega = ["Retira del local", "Entrega a domicilio"];
+      this.tipoEntregaModel = null;
+      this.getServices();
     },
     resetValidation() {
       this.$refs.form.resetValidation();
@@ -438,11 +477,10 @@ export default {
   },
   computed: {
     señaMontoField() {
-      return this.tipoPagoModel !== "Seña"
-
+      return this.tipoPagoModel !== "Seña";
     },
     deliveryField() {
-      return this.tipoEntregaModel !== "Entrega a domicilio" 
+      return this.tipoEntregaModel !== "Entrega a domicilio";
     },
     fields() {
       if (!this.dniSeleccionado) return [];
@@ -462,7 +500,7 @@ export default {
           telefono: e.telefono,
           direccion: e.direccion,
           localidad: e.localidad,
-          privincia: e.provincia
+          privincia: e.provincia,
         };
       });
     },
