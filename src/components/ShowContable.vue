@@ -5,9 +5,11 @@
       :items="filteredItems"
       sort-desc="fecha"
       :page.sync="page"
+      :items-per-page="5"
       class="elevation-1"
       :footer-props="{ itemsPerPageText: 'Items por pagina' }"
     >
+    
       <template v-slot:top>
         <v-toolbar flat>
           <v-toolbar-title>Módulo Contable</v-toolbar-title>
@@ -62,6 +64,7 @@
         <v-text-field
           v-model="total"
           type="number"
+          prefix="$"
           label="Total"
           class="mt-2 mr-3"
           outlined
@@ -172,6 +175,40 @@
                 ></v-text-field>
               </v-col>
             </v-row>
+               <span class="text-h6">Busqueda rápida</span>
+                <v-row>
+                  <v-col cols="3">
+                    <v-btn outlined small color="blue darken-1" text @click="hoy()">
+                      Hoy
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="3">
+                    <v-btn
+                      outlined
+                      color="blue darken-1"
+                      text
+                      small
+                      @click="ultimaSemana()"
+                    >
+                      Última semana
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                <v-row>
+                 <v-col cols="3">
+                    <v-btn
+                      outlined
+                      color="blue darken-1"
+                      text
+                      small
+                      @click="ultimoMes()"
+                    >
+                      Último mes
+                    </v-btn>
+                  </v-col>
+                </v-row>
           </v-container>
         </v-card-text>
         <v-card-actions>
@@ -197,6 +234,11 @@ export default {
     fechaBusquedaDesde: null,
     fechaBusquedaHasta: null,
     tipoBusqueda: null,
+    hoyBusqueda: null,
+    lastWeek: null,
+    firstWeek: null,
+    firstDay: null,
+    hoyMes: null,
     total: 0,
     tipos: ["Ordenes de trabajo", "Compras"],
     headers: [
@@ -283,13 +325,98 @@ export default {
             new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
         );
       });
-      this.calculateTotal(fechaHasta);
-      return fechaHasta;
+       let firstWeek = fechaHasta.filter((i) => {
+        let busquedaHasta;
+        if (this.firstWeek !== null) {
+          busquedaHasta = this.firstWeek.split("-");
+        }
+        const entrega = i.fecha.split("-");
+
+        return (
+          !this.firstWeek ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) >=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      let lastWeek = firstWeek.filter((i) => {
+        let busquedaHasta;
+        if (this.lastWeek !== null) {
+          busquedaHasta = this.lastWeek.split("-");
+        }
+        const entrega = i.fecha.split("-");
+
+        return (
+          !this.lastWeek ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) <=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      let mes = lastWeek.filter((i) => {
+        let busquedaDesde;
+        if (this.firstDay !== null) {
+          busquedaDesde = this.firstDay.split("-");
+        }
+
+        const entrega = i.fecha.split("-");
+        return (
+          !this.firstDay  ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) >=
+            new Date(busquedaDesde[0], busquedaDesde[1] - 1, busquedaDesde[2])
+        );
+      });
+
+        let hoymes = mes.filter((i) => {
+        let busquedaHasta;
+        if (this.hoyMes !== null) {
+          busquedaHasta = this.hoyMes.split("-");
+        }
+        const entrega = i.fecha.split("-");
+
+        return (
+          !this.hoyMes ||
+          new Date(entrega[0], entrega[1] - 1, entrega[2]) <=
+            new Date(busquedaHasta[0], busquedaHasta[1] - 1, busquedaHasta[2])
+        );
+      });
+
+      let hoy = hoymes.filter((i) => {
+        return !this.hoyBusqueda || i.fecha === this.hoyBusqueda;
+      });
+
+      this.calculateTotal(hoy);
+      return hoy;
     },
   },
   methods: {
     initialize() {
       this.getAll();
+    },
+      hoy() {
+      this.busquedaFechaModal = false;
+      this.hoyBusqueda = new Date().toISOString().slice(0, 10);
+      this.filteredItems();
+    },
+     ultimaSemana() {
+      this.busquedaFechaModal = false;
+      let today = new Date();
+      let firstDayWeek = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - 7
+      );
+      this.firstWeek = firstDayWeek.toISOString().slice(0, 10);
+      this.lasttWeek = today.toISOString().slice(0, 10);
+      this.filteredItems();
+    },
+    ultimoMes() {
+      this.busquedaFechaModal = false;
+      var date = new Date();
+      let day = new Date(date.getFullYear(), date.getMonth(), 1);
+      this.firstDay = day.toISOString().slice(0, 10);
+      this.hoyMes = new Date().toISOString().slice(0, 10);
+      this.filteredItems();
     },
     calculateTotal(array) {
       let totalordenes;
@@ -312,6 +439,11 @@ export default {
     descartarBusqueda() {
       this.tipoBusqueda = null;
       this.fechaBusqueda = null;
+      this.hoyBusqueda = null;
+      this.lastWeek = null;
+      this.firstWeek = null;
+      this.firstDay = null;
+      this.hoyMes = null;
       (this.fechaBusquedaDesde = null),
         (this.fechaBusquedaHasta = null),
         this.getAll();
